@@ -1,143 +1,15 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import {
-  mockPlan,
-  mockProfile,
-  mockRecommendations,
-  mockWeeklyProgress,
-} from "./mock-data";
-import type {
-  DevelopmentPlan,
-  PlanTask,
-  Recommendation,
-  UserProfile,
-} from "./types";
-
-interface MentorState {
-  profile: UserProfile;
-  plan: DevelopmentPlan | null;
-  recommendations: Recommendation[];
-  weekly: typeof mockWeeklyProgress;
-  hasPlan: boolean;
-  stats: {
-    totalTasks: number;
-    doneTasks: number;
-    pendingTasks: number;
-    progress: number;
-    skillsDeveloped: number;
-    activeDays: number;
-  };
-  nextTask: PlanTask | null;
-  updateProfile: (patch: Partial<UserProfile>) => void;
-  toggleTask: (taskId: string) => boolean;
-  addRecommendationToPlan: (recommendationId: string) => void;
-  generatePlan: () => void;
-  clearPlan: () => void;
-}
-
-const MentorContext = createContext<MentorState | null>(null);
-
-export function MentorProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile>(mockProfile);
-  const [plan, setPlan] = useState<DevelopmentPlan | null>(mockPlan);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>(mockRecommendations);
-
-  const updateProfile = useCallback((patch: Partial<UserProfile>) => {
-    setProfile((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  const toggleTask = useCallback((taskId: string) => {
-    let becameDone = false;
-    setPlan((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        phases: prev.phases.map((phase) => ({
-          ...phase,
-          tasks: phase.tasks.map((task) => {
-            if (task.id !== taskId) return task;
-            becameDone = !task.done;
-            return { ...task, done: !task.done };
-          }),
-        })),
-      };
-    });
-    return becameDone;
-  }, []);
-
-  const addRecommendationToPlan = useCallback((recommendationId: string) => {
-    setRecommendations((prev) =>
-      prev.map((rec) => (rec.id === recommendationId ? { ...rec, added: true } : rec)),
-    );
-    setPlan((prev) => {
-      if (!prev) return prev;
-      const rec = mockRecommendations.find((r) => r.id === recommendationId);
-      if (!rec) return prev;
-      const newTask: PlanTask = {
-        id: `task_${rec.id}`,
-        title: `Estudar ${rec.skill}`,
-        description: rec.reason,
-        category: "Estudo",
-        difficulty: "Intermediário",
-        estimatedTime: rec.estimatedTime,
-        done: false,
-      };
-      return {
-        ...prev,
-        phases: prev.phases.map((phase, index) =>
-          index === 1 && !phase.tasks.some((t) => t.id === newTask.id)
-            ? { ...phase, tasks: [...phase.tasks, newTask] }
-            : phase,
-        ),
-      };
-    });
-  }, []);
-
-  const generatePlan = useCallback(() => setPlan(mockPlan), []);
-  const clearPlan = useCallback(() => setPlan(null), []);
-
-  const value = useMemo<MentorState>(() => {
-    const tasks = plan?.phases.flatMap((p) => p.tasks) ?? [];
-    const doneTasks = tasks.filter((t) => t.done).length;
-    const totalTasks = tasks.length;
-    const nextTask = tasks.find((t) => !t.done) ?? null;
-
-    return {
-      profile,
-      plan,
-      recommendations,
-      weekly: mockWeeklyProgress,
-      hasPlan: Boolean(plan),
-      stats: {
-        totalTasks,
-        doneTasks,
-        pendingTasks: totalTasks - doneTasks,
-        progress: totalTasks ? Math.round((doneTasks / totalTasks) * 100) : 0,
-        skillsDeveloped: 5,
-        activeDays: 8,
-      },
-      nextTask,
-      updateProfile,
-      toggleTask,
-      addRecommendationToPlan,
-      generatePlan,
-      clearPlan,
-    };
-  }, [
-    profile,
-    plan,
-    recommendations,
-    updateProfile,
-    toggleTask,
-    addRecommendationToPlan,
-    generatePlan,
-    clearPlan,
-  ]);
-
-  return <MentorContext.Provider value={value}>{children}</MentorContext.Provider>;
-}
-
-export function useMentor() {
-  const ctx = useContext(MentorContext);
-  if (!ctx) throw new Error("useMentor deve ser usado dentro de MentorProvider");
-  return ctx;
-}
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { api, isAuthenticated, type PlanningResponse, type SkillResponse, type UserResponse } from "@/lib/api";
+import type { DevelopmentPlan, PlanTask, Recommendation, UserProfile } from "./types";
+interface MentorState { profile:UserProfile; plan:DevelopmentPlan|null; recommendations:Recommendation[]; loading:boolean; error:string; hasPlan:boolean; stats:{totalTasks:number;doneTasks:number;pendingTasks:number;progress:number;skillsDeveloped:number;activeDays:number}; nextTask:PlanTask|null; refresh:()=>Promise<void>; updateProfile:(patch:Partial<UserProfile>)=>Promise<void>; toggleTask:(taskId:string)=>Promise<boolean>; createPlan:(goal:string,skills:string[])=>Promise<void>; }
+const MentorContext=createContext<MentorState|null>(null); const emptyProfile:UserProfile={id:"",name:"",email:"",area:"",yearsOfExperience:"",situation:"",goal:"",skills:[],experiences:[],createdAt:""};
+function mapPlan(p:PlanningResponse):DevelopmentPlan{return{id:String(p.id),title:"Plano de desenvolvimento",goal:p.goal,phases:[{id:`planning-${p.id}`,title:"Plano personalizado",summary:p.recommendation,status:"EM_ANDAMENTO",tasks:p.items.map(i=>({id:String(i.id),title:i.description,description:i.description,category:"Prática",difficulty:"Intermediário",estimatedTime:"",done:i.completed}))}]};}
+function mapProfile(user:UserResponse,skills:SkillResponse[],goal:string):UserProfile{return{id:String(user.id),name:user.name,email:user.email,area:"",yearsOfExperience:"",situation:"",goal,skills:skills.map(s=>({id:String(s.id),name:s.name,level:"Intermediário"})),experiences:[],createdAt:user.createdAt};}
+export function MentorProvider({children}:{children:ReactNode}){const[profile,setProfile]=useState(emptyProfile);const[plan,setPlan]=useState<DevelopmentPlan|null>(null);const[recommendations,setRecommendations]=useState<Recommendation[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState("");
+ const refresh=useCallback(async()=>{if(!isAuthenticated()){setLoading(false);return;}setLoading(true);setError("");try{const[user,skills,plans]=await Promise.all([api.getCurrentUser(),api.getSkills(),api.getPlannings()]);const latest=plans[0]??null;setProfile(mapProfile(user,skills,latest?.goal??""));setPlan(latest?mapPlan(latest):null);setRecommendations(latest?[{id:`plan-${latest.id}`,skill:"Plano personalizado",priority:"Alta",reason:latest.recommendation,estimatedTime:"",added:true}]:[]);}catch(e){setError(e instanceof Error?e.message:"Não foi possível carregar seus dados.");}finally{setLoading(false);}},[]);
+ useEffect(()=>{void refresh();},[refresh]);
+ const updateProfile=useCallback(async(patch:Partial<UserProfile>)=>{const id=Number(profile.id);if(!id)return;const user=await api.updateUser(id,patch.name??profile.name,patch.email??profile.email);setProfile(p=>({...p,...patch,name:user.name,email:user.email}));},[profile]);
+ const toggleTask=useCallback(async(taskId:string)=>{if(!plan)return false;const task=plan.phases.flatMap(p=>p.tasks).find(t=>t.id===taskId);if(!task)return false;const updated=await api.updatePlanningItem(Number(plan.id),Number(taskId),task.description,!task.done);setPlan(mapPlan(updated));return!task.done;},[plan]);
+ const createPlan=useCallback(async(goal:string,skills:string[])=>{const created=await api.createPlanning(goal,skills);const createdSkills=await Promise.all(skills.map(name=>api.createSkill(name)));setPlan(mapPlan(created));setProfile(p=>({...p,goal,skills:createdSkills.map(s=>({id:String(s.id),name:s.name,level:"Intermediário"}))}));setRecommendations([{id:`plan-${created.id}`,skill:"Plano personalizado",priority:"Alta",reason:created.recommendation,estimatedTime:"",added:true}]);},[]);
+ const value=useMemo(()=>{const tasks=plan?.phases.flatMap(p=>p.tasks)??[];const done=tasks.filter(t=>t.done).length;return{profile,plan,recommendations,loading,error,hasPlan:Boolean(plan),stats:{totalTasks:tasks.length,doneTasks:done,pendingTasks:tasks.length-done,progress:tasks.length?Math.round(done/tasks.length*100):0,skillsDeveloped:profile.skills.length,activeDays:0},nextTask:tasks.find(t=>!t.done)??null,refresh,updateProfile,toggleTask,createPlan};},[profile,plan,recommendations,loading,error,refresh,updateProfile,toggleTask,createPlan]);return<MentorContext.Provider value={value}>{children}</MentorContext.Provider>}
+export function useMentor(){const ctx=useContext(MentorContext);if(!ctx)throw new Error("useMentor deve ser usado dentro de MentorProvider");return ctx;}
