@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/mentor/Logo";
-import { DashboardPreview } from "@/components/mentor/DashboardPreview";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -111,21 +110,6 @@ function Landing() {
                 <a href="#como-funciona">Conhecer a plataforma</a>
               </Button>
             </div>
-            <dl className="mt-12 grid max-w-md grid-cols-3 gap-6">
-              {[
-                ["+12 mil", "planos gerados"],
-                ["78%", "avançaram de fase"],
-                ["4 min", "para começar"],
-              ].map(([value, label]) => (
-                <div key={label}>
-                  <dt className="font-display text-2xl font-semibold">{value}</dt>
-                  <dd className="text-xs text-muted-foreground">{label}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <div className="animate-rise-in lg:pl-6">
-            <DashboardPreview />
           </div>
         </div>
       </section>

@@ -1,7 +1,100 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Circle, Clock3, LockKeyhole, Route as RouteIcon } from "lucide-react";
+import { Check, Circle, Clock3, Route as RouteIcon } from "lucide-react";
 import { AppShell } from "@/components/mentor/AppShell";
 import { Button } from "@/components/ui/button";
 import { useMentor } from "@/lib/mentor/store";
-export const Route=createFileRoute("/plano")({component:Plano});
-function Plano(){const {plan,loading,toggleTask,stats}=useMentor();if(loading)return <AppShell><p className="text-muted-foreground">Carregando seu plano...</p></AppShell>;if(!plan)return <AppShell><div className="surface-card p-8 text-center"><h1 className="text-2xl font-semibold">Você ainda não possui um plano</h1><p className="mt-2 text-muted-foreground">Complete o onboarding para gerar seu plano personalizado com IA.</p></div></AppShell>;const phase=plan.phases[0];return <AppShell><div><p className="text-sm font-semibold text-primary">Sua trilha</p><h1 className="mt-1 text-3xl font-semibold">{plan.title}</h1><p className="mt-2 max-w-3xl text-muted-foreground">{plan.goal}</p><div className="mt-8 grid gap-4 sm:grid-cols-3"><div className="surface-card p-5"><p className="text-xs text-muted-foreground">Progresso geral</p><p className="mt-2 text-2xl font-semibold">{stats.progress}%</p></div><div className="surface-card p-5"><p className="text-xs text-muted-foreground">Tarefas concluídas</p><p className="mt-2 text-2xl font-semibold">{stats.doneTasks} / {stats.totalTasks}</p></div><div className="surface-card p-5"><p className="text-xs text-muted-foreground">Recomendação da IA</p><p className="mt-2 line-clamp-2 text-sm font-semibold">{phase.summary}</p></div></div><section className="surface-card mt-8 overflow-hidden"><div className="flex items-center gap-4 border-b border-border p-5"><span className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground"><RouteIcon/></span><div><h2 className="font-semibold">Plano gerado pelo Mentor AI</h2><p className="text-xs text-muted-foreground">Tarefas sugeridas pelo backend</p></div></div><div className="divide-y divide-border">{phase.tasks.map(task=><div key={task.id} className="flex items-center gap-4 p-4 sm:px-5"><button onClick={()=>void toggleTask(task.id)} className="shrink-0">{task.done?<Check className="size-5 text-primary"/>:<Circle className="size-5 text-muted-foreground"/>}</button><div className="flex-1"><p className={`text-sm font-medium ${task.done?'line-through text-muted-foreground':''}`}>{task.title}</p><p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="size-3"/> {task.estimatedTime||"A definir"}</p></div>{!task.done&&<Button size="sm" variant="outline" onClick={()=>void toggleTask(task.id)}>Concluir</Button>}</div>)}</div></section></div></AppShell>}
+export const Route = createFileRoute("/plano")({ component: Plano });
+function Plano() {
+  const { plan, loading, toggleTask, stats } = useMentor();
+  if (loading)
+    return (
+      <AppShell>
+        <p className="text-muted-foreground">Carregando seu plano...</p>
+      </AppShell>
+    );
+  if (!plan)
+    return (
+      <AppShell>
+        <div className="surface-card p-8 text-center">
+          <h1 className="text-2xl font-semibold">Você ainda não possui um plano</h1>
+          <p className="mt-2 text-muted-foreground">
+            Complete o onboarding para gerar seu plano personalizado com IA.
+          </p>
+        </div>
+      </AppShell>
+    );
+  const phase = plan.phases[0];
+  if (!phase)
+    return (
+      <AppShell>
+        <div className="surface-card p-8 text-center">
+          <h1 className="text-2xl font-semibold">Seu plano ainda está sendo preparado</h1>
+          <p className="mt-2 text-muted-foreground">Tente novamente em alguns instantes.</p>
+        </div>
+      </AppShell>
+    );
+  return (
+    <AppShell>
+      <div>
+        <p className="text-sm font-semibold text-primary">Sua trilha</p>
+        <h1 className="mt-1 text-3xl font-semibold">{plan.title}</h1>
+        <p className="mt-2 max-w-3xl text-muted-foreground">{plan.goal}</p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="surface-card p-5">
+            <p className="text-xs text-muted-foreground">Progresso geral</p>
+            <p className="mt-2 text-2xl font-semibold">{stats.progress}%</p>
+          </div>
+          <div className="surface-card p-5">
+            <p className="text-xs text-muted-foreground">Tarefas concluídas</p>
+            <p className="mt-2 text-2xl font-semibold">
+              {stats.doneTasks} / {stats.totalTasks}
+            </p>
+          </div>
+          <div className="surface-card p-5">
+            <p className="text-xs text-muted-foreground">Recomendação da IA</p>
+            <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm font-semibold">{phase.summary}</p>
+          </div>
+        </div>
+        <section className="surface-card mt-8 overflow-hidden">
+          <div className="flex items-center gap-4 border-b border-border p-5">
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <RouteIcon />
+            </span>
+            <div>
+              <h2 className="font-semibold">Plano gerado pelo Mentor AI</h2>
+              <p className="text-xs text-muted-foreground">Tarefas sugeridas pelo backend</p>
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {phase.tasks.map((task) => (
+              <div key={task.id} className="flex items-center gap-4 p-4 sm:px-5">
+                <button onClick={() => void toggleTask(task.id)} className="shrink-0">
+                  {task.done ? (
+                    <Check className="size-5 text-primary" />
+                  ) : (
+                    <Circle className="size-5 text-muted-foreground" />
+                  )}
+                </button>
+                <div className="flex-1">
+                  <p
+                    className={`text-sm font-medium ${task.done ? "line-through text-muted-foreground" : ""}`}
+                  >
+                    {task.title}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock3 className="size-3" /> {task.estimatedTime || "A definir"}
+                  </p>
+                </div>
+                {!task.done && (
+                  <Button size="sm" variant="outline" onClick={() => void toggleTask(task.id)}>
+                    Concluir
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </AppShell>
+  );
+}

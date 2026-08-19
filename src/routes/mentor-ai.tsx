@@ -1,6 +1,109 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bot, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/mentor/AppShell";
+import { Button } from "@/components/ui/button";
 import { useMentor } from "@/lib/mentor/store";
-export const Route=createFileRoute("/mentor-ai")({component:MentorAI});
-function MentorAI(){const {plan,profile,loading}=useMentor();return <AppShell><div><div className="flex items-start gap-4"><span className="bg-gradient-ai flex size-12 shrink-0 items-center justify-center rounded-2xl shadow-glow"><Sparkles className="text-primary-foreground"/></span><div><p className="text-sm font-semibold text-primary">Seu mentor profissional</p><h1 className="mt-1 text-3xl font-semibold">Mentor AI</h1><p className="mt-2 text-muted-foreground">Recomendações geradas pelo backend com IA.</p></div></div>{loading?<p className="mt-8 text-muted-foreground">Analisando seu perfil...</p>:<><div className="mt-8 grid gap-4 md:grid-cols-2"><div className="surface-card p-5"><p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Objetivo</p><p className="mt-3 font-semibold">{profile.goal||"Defina seu objetivo no onboarding"}</p></div><div className="surface-card p-5"><p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Skills atuais</p><div className="mt-3 flex flex-wrap gap-2">{profile.skills.length?profile.skills.map(x=><span key={x.id} className="rounded-full bg-muted px-3 py-1 text-xs font-medium">{x.name}</span>):<span className="text-sm text-muted-foreground">Nenhuma skill cadastrada</span>}</div></div></div><div className="mt-6 surface-card overflow-hidden"><div className="bg-gradient-ai p-6 text-primary-foreground"><div className="flex items-center gap-3"><Bot/><div><p className="text-xs font-semibold text-primary-foreground/70">ANÁLISE DO SEU PERFIL</p><h2 className="mt-1 text-xl font-semibold">Sua recomendação personalizada</h2></div></div><p className="mt-4 max-w-3xl text-sm leading-relaxed text-primary-foreground/85">{plan?.phases[0]?.summary??"Complete o onboarding para que a IA analise seu objetivo e suas habilidades."}</p></div><div className="p-6"><h2 className="text-xl font-semibold">Plano gerado</h2><p className="mt-2 text-sm text-muted-foreground">As tarefas abaixo vêm diretamente da recomendação criada pelo Spring AI + Groq.</p><div className="mt-5 grid gap-3">{plan?.phases[0]?.tasks.map((task,index)=><div key={task.id} className="rounded-2xl border border-border p-4"><div className="flex items-start gap-3"><span className="flex size-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-primary">{index+1}</span><div><p className="font-semibold">{task.title}</p><p className="mt-1 text-sm text-muted-foreground">{task.description}</p></div></div></div>)}</div></div></div></>}</div></AppShell>}
+export const Route = createFileRoute("/mentor-ai")({ component: MentorAI });
+function MentorAI() {
+  const { plan, profile, loading } = useMentor();
+  return (
+    <AppShell>
+      <div>
+        <div className="flex items-start gap-4">
+          <span className="bg-gradient-ai flex size-12 shrink-0 items-center justify-center rounded-2xl shadow-glow">
+            <Sparkles className="text-primary-foreground" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-primary">Seu mentor profissional</p>
+            <h1 className="mt-1 text-3xl font-semibold">Mentor AI</h1>
+            <p className="mt-2 text-muted-foreground">Recomendações geradas pelo backend com IA.</p>
+          </div>
+        </div>
+        {loading ? (
+          <p className="mt-8 text-muted-foreground">Analisando seu perfil...</p>
+        ) : (
+          <>
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              <div className="surface-card p-5">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Objetivo
+                </p>
+                <p className="mt-3 font-semibold">
+                  {profile.goal || "Defina seu objetivo no onboarding"}
+                </p>
+              </div>
+              <div className="surface-card p-5">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Skills atuais
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {profile.skills.length ? (
+                    profile.skills.map((x) => (
+                      <span
+                        key={x.id}
+                        className="rounded-full bg-muted px-3 py-1 text-xs font-medium"
+                      >
+                        {x.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Nenhuma skill cadastrada</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {!plan ? (
+              <div className="mt-6 surface-card p-8 text-center">
+                <Bot className="mx-auto size-8 text-primary" />
+                <h2 className="mt-4 text-xl font-semibold">Ainda não há um plano para analisar</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Informe seu objetivo e suas skills para consultar a IA.
+                </p>
+                <Button className="mt-5" asChild>
+                  <Link to="/onboarding">Criar plano com IA</Link>
+                </Button>
+              </div>
+            ) : <div className="mt-6 surface-card overflow-hidden">
+              <div className="bg-gradient-ai p-6 text-primary-foreground">
+                <div className="flex items-center gap-3">
+                  <Bot />
+                  <div>
+                    <p className="text-xs font-semibold text-primary-foreground/70">
+                      ANÁLISE DO SEU PERFIL
+                    </p>
+                    <h2 className="mt-1 text-xl font-semibold">Sua recomendação personalizada</h2>
+                  </div>
+                </div>
+                <p className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-primary-foreground/85">
+                  {plan?.phases[0]?.summary ??
+                    "Complete o onboarding para que a IA analise seu objetivo e suas habilidades."}
+                </p>
+              </div>
+              <div className="p-6">
+                <h2 className="text-xl font-semibold">Plano gerado</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  As tarefas abaixo vêm diretamente da recomendação criada pelo Spring AI + Groq.
+                </p>
+                <div className="mt-5 grid gap-3">
+                  {plan?.phases[0]?.tasks.map((task, index) => (
+                    <div key={task.id} className="rounded-2xl border border-border p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-primary">
+                          {index + 1}
+                        </span>
+                        <div>
+                          <p className="font-semibold">{task.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>}
+          </>
+        )}
+      </div>
+    </AppShell>
+  );
+}

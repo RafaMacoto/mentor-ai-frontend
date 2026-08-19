@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/mentor/Logo";
 import { api, setAuth } from "@/lib/api";
+import { useMentor } from "@/lib/mentor/store";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { refresh } = useMentor();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,6 +25,7 @@ function LoginPage() {
     try {
       const token = await api.login(email, password);
       setAuth(token);
+      await refresh();
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível entrar.");

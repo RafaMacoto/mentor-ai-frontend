@@ -1,3 +1,76 @@
-import { createFileRoute } from "@tanstack/react-router"; import { BarChart3, CheckCircle2, Flame, Target, Trophy } from "lucide-react"; import { AppShell } from "@/components/mentor/AppShell";
-export const Route=createFileRoute("/progresso")({component:Progresso});
-function Progresso(){return <AppShell><div><p className="text-sm font-semibold text-primary">Sua evolução</p><h1 className="mt-1 text-3xl font-semibold">Progresso</h1><p className="mt-2 text-muted-foreground">Acompanhe o quanto você já avançou no seu plano.</p><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[[Target,"Progresso geral","42%"],[CheckCircle2,"Tarefas concluídas","12 / 28"],[Trophy,"Skills desenvolvidas","5"],[Flame,"Dias ativos","8"]].map(([Icon,label,value])=>{const I=Icon as typeof Target;return <div key={label as string} className="surface-card p-5"><span className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary"><I className="size-5"/></span><p className="mt-4 text-xs text-muted-foreground">{label as string}</p><p className="mt-1 font-display text-2xl font-semibold">{value as string}</p></div>})}</div><div className="mt-6 grid gap-6 lg:grid-cols-2"><div className="surface-card p-6"><div className="flex items-center gap-2"><BarChart3 className="size-5 text-primary"/><h2 className="font-semibold">Atividade da semana</h2></div><div className="mt-8 flex h-48 items-end justify-between gap-3 border-b border-border px-2">{[["Seg",45],["Ter",70],["Qua",35],["Qui",80],["Sex",55],["Sáb",90],["Dom",20]].map(([d,h])=><div key={d as string} className="flex h-full flex-1 flex-col items-center justify-end gap-2"><div className="w-full max-w-10 rounded-t-lg bg-gradient-ai" style={{height:`${h}%`}}/><span className="text-[11px] text-muted-foreground">{d as string}</span></div>)}</div></div><div className="surface-card p-6"><h2 className="font-semibold">Competências</h2><p className="mt-1 text-sm text-muted-foreground">Evolução das skills prioritárias.</p><div className="mt-6 space-y-5">{[["Java","90%"],["Spring Boot","75%"],["SQL","80%"],["Docker","35%"],["Testes","20%"]].map(([x,p])=><div key={x}><div className="flex justify-between text-sm"><span>{x}</span><span className="text-muted-foreground">{p}</span></div><div className="mt-2 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{width:p}}/></div></div>)}</div></div></div><div className="mt-6 surface-card p-6"><h2 className="font-semibold">Histórico recente</h2><div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{["API REST com Spring Boot","Revisão de Collections","Projeto de autenticação"].map(x=><div key={x} className="flex items-center gap-3 rounded-xl border border-border p-4"><CheckCircle2 className="size-5 text-primary"/><div><p className="text-sm font-medium">{x}</p><p className="text-xs text-muted-foreground">Concluído recentemente</p></div></div>)}</div></div></div></AppShell>}
+import { createFileRoute } from "@tanstack/react-router";
+import { CheckCircle2, Flame, Target, Trophy } from "lucide-react";
+import { AppShell } from "@/components/mentor/AppShell";
+import { useMentor } from "@/lib/mentor/store";
+export const Route = createFileRoute("/progresso")({ component: Progresso });
+function Progresso() {
+  const { profile, plan, loading, stats } = useMentor();
+  const completedTasks = plan?.phases.flatMap((phase) => phase.tasks).filter((task) => task.done) ?? [];
+
+  if (loading)
+    return (
+      <AppShell>
+        <p className="text-muted-foreground">Carregando seu progresso...</p>
+      </AppShell>
+    );
+
+  return (
+    <AppShell>
+      <div>
+        <p className="text-sm font-semibold text-primary">Sua evolução</p>
+        <h1 className="mt-1 text-3xl font-semibold">Progresso</h1>
+        <p className="mt-2 text-muted-foreground">
+          Acompanhe o quanto você já avançou no seu plano.
+        </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            [Target, "Progresso geral", `${stats.progress}%`],
+            [CheckCircle2, "Tarefas concluídas", `${stats.doneTasks} / ${stats.totalTasks}`],
+            [Trophy, "Skills cadastradas", String(stats.skillsDeveloped)],
+            [Flame, "Dias ativos", "Indisponível"],
+          ].map(([Icon, label, value]) => {
+            const I = Icon as typeof Target;
+            return (
+              <div key={label as string} className="surface-card p-5">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-accent text-primary">
+                  <I className="size-5" />
+                </span>
+                <p className="mt-4 text-xs text-muted-foreground">{label as string}</p>
+                <p className="mt-1 font-display text-2xl font-semibold">{value as string}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="surface-card p-6">
+            <h2 className="font-semibold">Skills cadastradas</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Dados carregados do seu perfil.</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {profile.skills.map((skill) => (
+                <span key={skill.id} className="rounded-full bg-accent px-3 py-1.5 text-sm font-medium">
+                  {skill.name}
+                </span>
+              ))}
+              {!profile.skills.length && <p className="text-sm text-muted-foreground">Nenhuma skill cadastrada.</p>}
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 surface-card p-6">
+          <h2 className="font-semibold">Histórico recente</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {completedTasks.map((task) => (
+              <div key={task.id} className="flex items-center gap-3 rounded-xl border border-border p-4">
+                <CheckCircle2 className="size-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">{task.title}</p>
+                  <p className="text-xs text-muted-foreground">Concluído no plano atual</p>
+                </div>
+              </div>
+            ))}
+            {!completedTasks.length && <p className="text-sm text-muted-foreground">Nenhuma tarefa concluída ainda.</p>}
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}

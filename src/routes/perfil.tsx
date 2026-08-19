@@ -6,5 +6,123 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMentor } from "@/lib/mentor/store";
-export const Route=createFileRoute("/perfil")({component:Perfil});
-function Perfil(){const {profile,updateProfile,loading}=useMentor();const [editing,setEditing]=useState(false);const [name,setName]=useState("");const [email,setEmail]=useState("");const start=()=>{setName(profile.name);setEmail(profile.email);setEditing(true)};const save=async()=>{await updateProfile({name,email});setEditing(false)};return <AppShell><div><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm font-semibold text-primary">Seu perfil</p><h1 className="mt-1 text-3xl font-semibold">Meu Perfil</h1><p className="mt-2 text-muted-foreground">Dados carregados diretamente da API.</p></div>{!editing&&<Button variant="outline" onClick={start}><Pencil/> Editar perfil</Button>}</div>{loading?<p className="mt-8 text-muted-foreground">Carregando...</p>:<div className="mt-8 grid gap-6 lg:grid-cols-[.75fr_1.25fr]"><div className="surface-card p-6"><div className="flex flex-col items-center text-center"><span className="bg-gradient-ai flex size-24 items-center justify-center rounded-full text-3xl font-semibold text-primary-foreground">{profile.name.charAt(0)}</span><h2 className="mt-4 text-xl font-semibold">{profile.name}</h2><p className="text-sm text-muted-foreground">{profile.email}</p></div><div className="mt-6 border-t border-border pt-6"><div className="flex gap-3 text-sm"><Mail className="size-4 text-muted-foreground"/>{profile.email}</div></div></div><div className="space-y-6"><section className="surface-card p-6"><div className="flex items-center justify-between"><h2 className="font-semibold">Informações pessoais</h2>{editing&&<div className="flex gap-2"><Button variant="ghost" onClick={()=>setEditing(false)}>Cancelar</Button><Button onClick={()=>void save()}>Salvar</Button></div>}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>Nome</Label><Input value={editing?name:profile.name} readOnly={!editing} onChange={e=>setName(e.target.value)}/></div><div className="space-y-2"><Label>Email</Label><Input value={editing?email:profile.email} readOnly={!editing} onChange={e=>setEmail(e.target.value)}/></div></div></section><section className="surface-card p-6"><div className="flex items-center gap-3"><UserRound className="size-5 text-primary"/><h2 className="font-semibold">Skills</h2></div><div className="mt-5 flex flex-wrap gap-2">{profile.skills.map(x=><span key={x.id} className="rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground">{x.name}</span>)}{!profile.skills.length&&<p className="text-sm text-muted-foreground">Nenhuma skill cadastrada.</p>}</div></section></div></div>}</div></AppShell>}
+export const Route = createFileRoute("/perfil")({ component: Perfil });
+function Perfil() {
+  const { profile, updateProfile, loading } = useMentor();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const start = () => {
+    setName(profile.name);
+    setEmail(profile.email);
+    setEditing(true);
+  };
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await updateProfile({ name, email });
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível atualizar o perfil.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <AppShell>
+      <div>
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm font-semibold text-primary">Seu perfil</p>
+            <h1 className="mt-1 text-3xl font-semibold">Meu Perfil</h1>
+            <p className="mt-2 text-muted-foreground">Dados carregados diretamente da API.</p>
+          </div>
+          {!editing && (
+            <Button variant="outline" onClick={start}>
+              <Pencil /> Editar perfil
+            </Button>
+          )}
+        </div>
+        {loading ? (
+          <p className="mt-8 text-muted-foreground">Carregando...</p>
+        ) : (
+          <div className="mt-8 grid gap-6 lg:grid-cols-[.75fr_1.25fr]">
+            <div className="surface-card p-6">
+              <div className="flex flex-col items-center text-center">
+                <span className="bg-gradient-ai flex size-24 items-center justify-center rounded-full text-3xl font-semibold text-primary-foreground">
+                  {profile.name.charAt(0)}
+                </span>
+                <h2 className="mt-4 text-xl font-semibold">{profile.name}</h2>
+                <p className="text-sm text-muted-foreground">{profile.email}</p>
+              </div>
+              <div className="mt-6 border-t border-border pt-6">
+                <div className="flex gap-3 text-sm">
+                  <Mail className="size-4 text-muted-foreground" />
+                  {profile.email}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <section className="surface-card p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold">Informações pessoais</h2>
+                  {editing && (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" onClick={() => setEditing(false)}>
+                        Cancelar
+                      </Button>
+                      <Button disabled={saving} onClick={() => void save()}>
+                        {saving ? "Salvando..." : "Salvar"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Nome</Label>
+                    <Input
+                      value={editing ? name : profile.name}
+                      readOnly={!editing}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      value={editing ? email : profile.email}
+                      readOnly={!editing}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {error && <p className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+              </section>
+              <section className="surface-card p-6">
+                <div className="flex items-center gap-3">
+                  <UserRound className="size-5 text-primary" />
+                  <h2 className="font-semibold">Skills</h2>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {profile.skills.map((x) => (
+                    <span
+                      key={x.id}
+                      className="rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground"
+                    >
+                      {x.name}
+                    </span>
+                  ))}
+                  {!profile.skills.length && (
+                    <p className="text-sm text-muted-foreground">Nenhuma skill cadastrada.</p>
+                  )}
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
+      </div>
+    </AppShell>
+  );
+}

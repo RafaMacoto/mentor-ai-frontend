@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+const API_BASE_URL = (import.meta.env["VITE_API_URL"] ?? "http://localhost:8080").replace(/\/$/, "");
 export interface TokenResponse { token: string; email: string; expiresInMinutes: number; }
 export interface UserResponse { id: number; name: string; email: string; createdAt: string; }
 export interface SkillResponse { id: number; name: string; userName: string; }
@@ -7,19 +7,44 @@ export interface PlanningResponse { id: number; goal: string; recommendation: st
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("mentorai_token");
-  const headers = new Headers(options.headers); headers.set("Content-Type", "application/json");
+  const headers = new Headers(options.headers);
+  if (options.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-  if (!response.ok) { let message = `Erro ${response.status}`; try { const body = await response.json(); if (body.message) message = body.message; } catch {} throw new Error(message); }
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(`Não foi possível acessar a API em ${API_BASE_URL}. Verifique se o backend está ativo e se o CORS permite este frontend.`);
+    }
+    throw error;
+  }
+  if (!response.ok) {
+    let message = `Erro ${response.status}`;
+    const text = await response.text();
+    if (text) {
+      try {
+        const body = JSON.parse(text) as { message?: string; error?: { message?: string } };
+        message = body.message ?? body.error?.message ?? text;
+      } catch {
+        message = text;
+      }
+    }
+    if (response.status === 401) {
+      clearAuth();
+      message = "Sua sessão expirou ou é inválida. Faça login novamente.";
+    }
+    throw new Error(message);
+  }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
-function tokenSubject(): number | null { const token = localStorage.getItem("mentorai_token"); if (!token) return null; try { const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return Number(payload.sub) || null; } catch { return null; } }
 export const api = {
   login: (login: string, password: string) => request<TokenResponse>("/login", { method: "POST", body: JSON.stringify({ login, password }) }),
   register: (name: string, email: string, password: string) => request<UserResponse>("/user/register", { method: "POST", body: JSON.stringify({ name, email, password }) }),
-  getCurrentUser: () => { const id = tokenSubject(); if (!id) throw new Error("Sessão inválida"); return request<UserResponse>(`/user/${id}`); },
+  getCurrentUser: () => request<UserResponse>("/user/me"),
   updateUser: (id: number, name: string, email: string) => request<UserResponse>(`/user/${id}`, { method: "PUT", body: JSON.stringify({ name, email }) }),
+  updateCurrentUser: (name: string, email: string) => request<UserResponse>("/user/me", { method: "PUT", body: JSON.stringify({ name, email }) }),
   getSkills: () => request<SkillResponse[]>("/skills"),
   createSkill: (name: string) => request<SkillResponse>("/skills", { method: "POST", body: JSON.stringify({ name }) }),
   updateSkill: (id: number, name: string) => request<SkillResponse>(`/skills/${id}`, { method: "PUT", body: JSON.stringify({ name }) }),
